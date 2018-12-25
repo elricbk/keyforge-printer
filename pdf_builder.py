@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # TODO: replace with `subprocess`
-from plumbum.cmd import montage, convert, rm
+from plumbum.cmd import montage, convert
 
 # TODO: replace with smth. builtin
 from bs4 import BeautifulSoup
@@ -25,6 +25,10 @@ USER_AGENT = (
     'AppleWebKit/537.36 (KHTML, like Gecko) ' +
     'Chrome/35.0.1916.47 Safari/537.36'
 )
+
+
+def rm(fname):
+    os.remove(fname)
 
 
 def load_image_map():
