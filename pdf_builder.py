@@ -4,9 +4,6 @@
 # TODO: replace with `subprocess`
 from plumbum.cmd import montage, convert, rm
 
-# TODO: replace with `glob`
-from plumbum.cmd import gls
-
 # TODO: replace with smth. builtin
 from bs4 import BeautifulSoup
 
@@ -16,6 +13,7 @@ import requests
 import tempfile
 import os
 from multiprocessing import Pool
+import glob
 
 URL_EXAMPLE = 'https://www.keyforgegame.com/deck-details/f52ef95f-5ddb-463a-91c5-0dcdd0ed4b14'
 
@@ -23,14 +21,13 @@ IMAGE_PATH = "./cards/"
 # TODO: build crop marks file in runtime
 CROP_MARKS_FILE = "./misc/crop_marks_full.png"
 OUTPUT_FILE = "./result.pdf"
+FILE_PATTERN = "[0-9][0-9][0-9]*"
 
 def load_image_map():
     images = {}
-    for fname in gls("-AC1", IMAGE_PATH).split("\n"):
-        if len(fname.strip()) == 0:
-            continue
+    for fname in glob.glob(os.path.join(IMAGE_PATH, FILE_PATTERN)):
         fid = fname[:3]
-        images[int(fid)] = IMAGE_PATH + fname
+        images[int(fid)] = os.path.join(IMAGE_PATH, fname)
     return images
 
 
