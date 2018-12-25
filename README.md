@@ -1,7 +1,7 @@
 Подготавливает PDF для печати колод KeyForge.
 
 Требования:
-* Python 3 + модули: `plumbum`, `requests`, `beautifulsoup4`
+* Python 3 + модули: `plumbum`, `beautifulsoup4`
 * `imagemagick` (используются команты `montage` и `convert`)
 * карты лежат в папке `cards` рядом со скриптом (путь можно поменять в скрипте)
 * все карты имеют размер 750 на 1050 пикселей (2.5" на 3.5" при 300 DPI)

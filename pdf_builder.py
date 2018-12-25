@@ -7,21 +7,25 @@ from plumbum.cmd import montage, convert, rm
 # TODO: replace with smth. builtin
 from bs4 import BeautifulSoup
 
-# TODO: replace with smth. builtin
-import requests
-
 import tempfile
 import os
 from multiprocessing import Pool
 import glob
+import urllib.request
 
-URL_EXAMPLE = 'https://www.keyforgegame.com/deck-details/f52ef95f-5ddb-463a-91c5-0dcdd0ed4b14'
+URL_EXAMPLE = "https://www.keyforgegame.com/deck-details/f52ef95f-5ddb-463a-91c5-0dcdd0ed4b14"
 
 IMAGE_PATH = "./cards/"
 # TODO: build crop marks file in runtime
 CROP_MARKS_FILE = "./misc/crop_marks_full.png"
 OUTPUT_FILE = "./result.pdf"
 FILE_PATTERN = "[0-9][0-9][0-9]*"
+USER_AGENT = (
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) ' +
+    'AppleWebKit/537.36 (KHTML, like Gecko) ' +
+    'Chrome/35.0.1916.47 Safari/537.36'
+)
+
 
 def load_image_map():
     images = {}
@@ -32,8 +36,13 @@ def load_image_map():
 
 
 def get_card_list(url):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, features="html.parser")
+    req = urllib.request.Request(
+        url,
+        data=None,
+        headers={ 'User-Agent': USER_AGENT }
+    )
+    response = urllib.request.urlopen(req).read()
+    soup = BeautifulSoup(response, features="html.parser")
     return list(map(
         lambda it: int(it.text),
         soup.find_all("span", "card-table__deck-card-number")
