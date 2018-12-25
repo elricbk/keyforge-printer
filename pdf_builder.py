@@ -13,10 +13,14 @@ import subprocess
 
 URL_EXAMPLE = "https://www.keyforgegame.com/deck-details/f52ef95f-5ddb-463a-91c5-0dcdd0ed4b14"
 
-IMAGE_PATH = "./cards/"
+CARDS_PATH = "./cards/"
+CONVERT_PATH = '/usr/local/bin/convert'
+MONTAGE_PATH = '/usr/local/bin/montage'
+OUTPUT_FILE = "./result.pdf"
+
+
 # TODO: build crop marks file in runtime
 CROP_MARKS_FILE = "./misc/crop_marks_full.png"
-OUTPUT_FILE = "./result.pdf"
 FILE_PATTERN = "[0-9][0-9][0-9]*"
 USER_AGENT = (
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) ' +
@@ -30,20 +34,20 @@ def rm(fname):
 
 
 def montage(*params):
-    args = ['montage']
+    args = [MONTAGE_PATH]
     args.extend(params)
     subprocess.check_output(args, stderr=subprocess.STDOUT)
 
 
 def convert(*params):
-    args = ['convert']
+    args = [CONVERT_PATH]
     args.extend(params)
     subprocess.check_output(args, stderr=subprocess.STDOUT)
 
 
 def load_image_map():
     images = {}
-    for fname in glob.glob(os.path.join(IMAGE_PATH, FILE_PATTERN)):
+    for fname in glob.glob(os.path.join(CARDS_PATH, FILE_PATTERN)):
         fid = os.path.basename(fname)[:3]
         images[int(fid)] = fname
     return images
