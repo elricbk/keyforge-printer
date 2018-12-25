@@ -26,8 +26,8 @@ FILE_PATTERN = "[0-9][0-9][0-9]*"
 def load_image_map():
     images = {}
     for fname in glob.glob(os.path.join(IMAGE_PATH, FILE_PATTERN)):
-        fid = fname[:3]
-        images[int(fid)] = os.path.join(IMAGE_PATH, fname)
+        fid = os.path.basename(fname)[:3]
+        images[int(fid)] = fname
     return images
 
 
