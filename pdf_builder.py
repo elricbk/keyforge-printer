@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-# TODO: replace with `subprocess`
-from plumbum.cmd import montage, convert
-
 # TODO: replace with smth. builtin
 from bs4 import BeautifulSoup
 
@@ -12,6 +9,7 @@ import os
 from multiprocessing import Pool
 import glob
 import urllib.request
+import subprocess
 
 URL_EXAMPLE = "https://www.keyforgegame.com/deck-details/f52ef95f-5ddb-463a-91c5-0dcdd0ed4b14"
 
@@ -29,6 +27,18 @@ USER_AGENT = (
 
 def rm(fname):
     os.remove(fname)
+
+
+def montage(*params):
+    args = ['montage']
+    args.extend(params)
+    subprocess.check_output(args, stderr=subprocess.STDOUT)
+
+
+def convert(*params):
+    args = ['convert']
+    args.extend(params)
+    subprocess.check_output(args, stderr=subprocess.STDOUT)
 
 
 def load_image_map():
