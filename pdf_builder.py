@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+# coding: utf-8
+
+# TODO: replace with `subprocess`
+from plumbum.cmd import montage, convert, rm
+
+# TODO: replace with `glob`
+from plumbum.cmd import gls
+
+# TODO: replace with smth. builtin
+from bs4 import BeautifulSoup
+
+# TODO: replace with smth. builtin
+import requests
+
+import tempfile
+import os
+from multiprocessing import Pool
+
+URL_EXAMPLE = 'https://www.keyforgegame.com/deck-details/f52ef95f-5ddb-463a-91c5-0dcdd0ed4b14'
+
+IMAGE_PATH = "./cards/"
+# TODO: build crop marks file in runtime
+CROP_MARKS_FILE = "./misc/crop_marks_full.png"
+OUTPUT_FILE = "./result.pdf"
+
+def load_image_map():
+    images = {}
+    for fname in gls("-AC1", IMAGE_PATH).split("\n"):
+        if len(fname.strip()) == 0:
+            continue
+        fid = fname[:3]
+        images[int(fid)] = IMAGE_PATH + fname
+    return images
+
+
+def get_card_list(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, features="html.parser")
+    return list(map(
+        lambda it: int(it.text),
+        soup.find_all("span", "card-table__deck-card-number")
+    ))
+
+
+def get_temp_fname():
+    with tempfile.NamedTemporaryFile(suffix='.png') as f:
+        return f.name
+
+
+def build_page(page_cards):
+    assert len(page_cards) == 9, "Page should contain 9 cards"
+    
+    # TODO: replace `montage` by `convert`
+    PREFIX = ["-geometry", "+0+0", "-tile", "3x3"]
+    fname = get_temp_fname()
+    params = PREFIX + list(page_cards) + [fname]
+    montage(*params)
+    
+    A4_SIZE = "2480x3508"
+    BORDERED_SIZE = "2274x3174-12-12"
+    JPEG_QUALITY = "94"
+    convert_params = [
+        "-size", A4_SIZE, "xc:white",
+        "(",
+            fname, CROP_MARKS_FILE, "-gravity", "center", "-composite",
+            "(",
+                "-clone", "0",
+                "-set", "option:distort:viewport", BORDERED_SIZE,
+                "-virtual-pixel", "mirror",
+                "-distort", "SRT", "0,0 1,1 0",
+            ")",
+            "(", "-clone", "0", ")",
+            "-delete", "0",
+            "-gravity", "center",
+            "-compose", "over",
+            "-composite",
+            "+repage",
+        ")",
+        "-gravity", "center",
+        "-composite",
+        "-quality", JPEG_QUALITY,
+        fname + ".jpg"
+    ]
+    convert(*convert_params)
+    rm(fname)
+    return fname + ".jpg"
+
+
+def build_pdf(card_list):
+    assert len(card_list) == 36, "Deck should consist of 36 cards"
+    fs = []
+    # TODO: add card backs
+    with Pool() as p:
+        fs = list(p.map(build_page, zip(*[iter(card_list)]*9)))
+    convert(*(fs + [OUTPUT_FILE]))
+    for f in fs:
+        rm(f)
+
+
+def main():
+    # TODO: add logging
+    image_map = load_image_map()
+    deck = get_card_list(URL_EXAMPLE)
+    deck_images = list(map(lambda it: image_map[it], deck))
+    build_pdf(deck_images)
+
+
+if __name__ == "__main__":
+    main()
+
