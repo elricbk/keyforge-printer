@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-# TODO: replace with smth. builtin
-from bs4 import BeautifulSoup
-
 import tempfile
 import os
 from multiprocessing import Pool
 import glob
 import urllib.request
 import subprocess
+import html.parser
 
 URL_EXAMPLE = "https://www.keyforgegame.com/deck-details/f52ef95f-5ddb-463a-91c5-0dcdd0ed4b14"
 
@@ -27,6 +25,27 @@ USER_AGENT = (
     'AppleWebKit/537.36 (KHTML, like Gecko) ' +
     'Chrome/35.0.1916.47 Safari/537.36'
 )
+
+
+class HTMLParser(html.parser.HTMLParser):
+    def __init__(self):
+        super(HTMLParser, self).__init__()
+        self.cards = []
+
+    def handle_starttag(self, tag, attrs):
+        NUMBER_CLASS = "card-table__deck-card-number"
+        self.in_card_number_span = (
+            (tag == 'span') and
+            ("class", NUMBER_CLASS) in attrs
+        )
+
+    def handle_endtag(self, tag):
+        if self.in_card_number_span and tag == 'span':
+            self.in_card_number_span = False
+
+    def handle_data(self, data):
+        if self.in_card_number_span:
+            self.cards.append(int(data))
 
 
 def rm(fname):
@@ -53,18 +72,19 @@ def load_image_map():
     return images
 
 
-def get_card_list(url):
+def get_deck_page(url):
     req = urllib.request.Request(
         url,
         data=None,
         headers={ 'User-Agent': USER_AGENT }
     )
-    response = urllib.request.urlopen(req).read()
-    soup = BeautifulSoup(response, features="html.parser")
-    return list(map(
-        lambda it: int(it.text),
-        soup.find_all("span", "card-table__deck-card-number")
-    ))
+    return urllib.request.urlopen(req).read().decode('utf-8')
+
+
+def get_card_list(text):
+    parser = HTMLParser()
+    parser.feed(text)
+    return parser.cards
 
 
 def get_temp_fname():
@@ -74,13 +94,13 @@ def get_temp_fname():
 
 def build_page(page_cards):
     assert len(page_cards) == 9, "Page should contain 9 cards"
-    
+
     # TODO: replace `montage` by `convert`
     PREFIX = ["-geometry", "+0+0", "-tile", "3x3"]
     fname = get_temp_fname()
     params = PREFIX + list(page_cards) + [fname]
     montage(*params)
-    
+
     A4_SIZE = "2480x3508"
     BORDERED_SIZE = "2274x3174-12-12"
     JPEG_QUALITY = "94"
@@ -125,7 +145,8 @@ def build_pdf(card_list):
 def main():
     # TODO: add logging
     image_map = load_image_map()
-    deck = get_card_list(URL_EXAMPLE)
+    html = get_deck_page(URL_EXAMPLE)
+    deck = get_card_list(html)
     deck_images = list(map(lambda it: image_map[it], deck))
     build_pdf(deck_images)
 
