@@ -8,6 +8,8 @@ import glob
 import urllib.request
 import subprocess
 import html.parser
+from functools import partial
+
 
 URL_EXAMPLE = "https://www.keyforgegame.com/deck-details/f52ef95f-5ddb-463a-91c5-0dcdd0ed4b14"
 
@@ -17,14 +19,14 @@ MONTAGE_PATH = '/usr/local/bin/montage'
 OUTPUT_FILE = "./result.pdf"
 
 
-# TODO: build crop marks file in runtime
-CROP_MARKS_FILE = "./misc/crop_marks_full.png"
 FILE_PATTERN = "[0-9][0-9][0-9]*"
 USER_AGENT = (
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) ' +
     'AppleWebKit/537.36 (KHTML, like Gecko) ' +
     'Chrome/35.0.1916.47 Safari/537.36'
 )
+DEFAULT_CROP_MARK_LENGTH = 24
+DEFAULT_CROP_MARK_WIDTH = 2
 
 
 class HTMLParser(html.parser.HTMLParser):
@@ -61,7 +63,11 @@ def montage(*params):
 def convert(*params):
     args = [CONVERT_PATH]
     args.extend(params)
-    subprocess.check_output(args, stderr=subprocess.STDOUT)
+    try:
+        subprocess.check_output(args, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        raise
 
 
 def load_image_map():
@@ -92,7 +98,7 @@ def get_temp_fname():
         return f.name
 
 
-def build_page(page_cards):
+def build_page(crop_marks_file, page_cards):
     assert len(page_cards) == 9, "Page should contain 9 cards"
 
     # TODO: replace `montage` by `convert`
@@ -107,7 +113,7 @@ def build_page(page_cards):
     convert_params = [
         "-size", A4_SIZE, "xc:white",
         "(",
-            fname, CROP_MARKS_FILE, "-gravity", "center", "-composite",
+            fname, crop_marks_file, "-gravity", "center", "-composite",
             "(",
                 "-clone", "0",
                 "-set", "option:distort:viewport", BORDERED_SIZE,
@@ -131,15 +137,48 @@ def build_page(page_cards):
     return fname + ".jpg"
 
 
+def build_crop_marks(w, h):
+    l = DEFAULT_CROP_MARK_LENGTH
+    crop_file_name = get_temp_fname()
+    convert(
+        "(",
+            "-size", f"{w}x{h}",
+            "xc:none",
+            "-fill", "red",
+            "-strokewidth", str(DEFAULT_CROP_MARK_WIDTH),
+            "-draw", (
+                f"line 0,0 0,{l} " +
+                f"line 0,0 {l},0 " +
+                f"line 0,{h - 1} 0,{h - l} " +
+                f"line 0,{h - 1} {l},{h - 1} " +
+                f"line {w - 1},0 {w - 1},{l} " +
+                f"line {w - 1},0 {w - l},0 " +
+                f"line {w - 1},{h - 1} {w - l},{h - 1} " +
+                f"line {w - 1},{h - 1} {w - 1},{h - l}"
+            ),
+        ")",
+        "-duplicate", "2", "+append",
+        "-duplicate", "2", "-append",
+        "+repage",
+        crop_file_name
+    )
+    return crop_file_name
+
+
 def build_pdf(card_list):
     assert len(card_list) == 36, "Deck should consist of 36 cards"
+    crop_marks_file = build_crop_marks(750, 1050)
     fs = []
     # TODO: add card backs
     with Pool() as p:
-        fs = list(p.map(build_page, zip(*[iter(card_list)]*9)))
+        fs = list(p.map(
+            partial(build_page, crop_marks_file),
+            zip(*[iter(card_list)]*9)
+        ))
     convert(*(fs + [OUTPUT_FILE]))
     for f in fs:
         rm(f)
+    rm(crop_marks_file)
 
 
 def main():
