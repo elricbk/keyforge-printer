@@ -54,20 +54,20 @@ def rm(fname):
     os.remove(fname)
 
 
-def montage(*params):
-    args = [MONTAGE_PATH]
-    args.extend(params)
-    subprocess.check_output(args, stderr=subprocess.STDOUT)
-
-
-def convert(*params):
-    args = [CONVERT_PATH]
-    args.extend(params)
+def __run(*args):
     try:
         subprocess.check_output(args, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         print(e.output)
         raise
+
+
+def montage(*params):
+    __run(MONTAGE_PATH, *params)
+
+
+def convert(*params):
+    __run(CONVERT_PATH, *params)
 
 
 def load_image_map():
