@@ -17,6 +17,7 @@ URL_EXAMPLE = "https://www.keyforgegame.com/deck-details/f52ef95f-5ddb-463a-91c5
 CARDS_PATH = "./cards/"
 CONVERT_PATH = '/usr/local/bin/convert'
 OUTPUT_FILE = "./result.pdf"
+JPEG_QUALITY = "94"
 
 
 FILE_PATTERN = "[0-9][0-9][0-9]*"
@@ -89,30 +90,27 @@ def get_card_list(text):
     return parser.cards
 
 
-def get_temp_fname():
-    with tempfile.NamedTemporaryFile(suffix='.png') as f:
+def get_temp_fname(suffix=".png"):
+    with tempfile.NamedTemporaryFile(suffix=suffix) as f:
         return f.name
 
 
 def build_page(crop_marks_file, page_cards):
     assert len(page_cards) == 9, "Page should contain 9 cards"
 
-    fname = get_temp_fname()
-    convert(*[
-        "(", page_cards[0], page_cards[1], page_cards[2], "+append", ")",
-        "(", page_cards[3], page_cards[4], page_cards[5], "+append", ")",
-        "(", page_cards[6], page_cards[7], page_cards[8], "+append", ")",
-        "-append",
-        fname
-    ])
-
     A4_SIZE = "2480x3508"
     BORDERED_SIZE = "2274x3174-12-12"
-    JPEG_QUALITY = "94"
-    convert_params = [
+    cs = page_cards
+    fname = get_temp_fname(".jpg")
+    convert(*[
         "-size", A4_SIZE, "xc:white",
         "(",
-            fname, crop_marks_file, "-gravity", "center", "-composite",
+            "(",
+                "(", cs[0], cs[1], cs[2], "+append", ")",
+                "(", cs[3], cs[4], cs[5], "+append", ")",
+                "(", cs[6], cs[7], cs[8], "+append", ")",
+                "-append",
+            ")", crop_marks_file, "-gravity", "center", "-composite",
             "(",
                 "-clone", "0",
                 "-set", "option:distort:viewport", BORDERED_SIZE,
@@ -129,11 +127,9 @@ def build_page(crop_marks_file, page_cards):
         "-gravity", "center",
         "-composite",
         "-quality", JPEG_QUALITY,
-        fname + ".jpg"
-    ]
-    convert(*convert_params)
-    rm(fname)
-    return fname + ".jpg"
+        fname
+    ])
+    return fname
 
 
 def build_crop_marks(w, h):
