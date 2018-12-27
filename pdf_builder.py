@@ -11,11 +11,11 @@ import html.parser
 from functools import partial
 
 
+# TODO: accept as parameter
 URL_EXAMPLE = "https://www.keyforgegame.com/deck-details/f52ef95f-5ddb-463a-91c5-0dcdd0ed4b14"
 
 CARDS_PATH = "./cards/"
 CONVERT_PATH = '/usr/local/bin/convert'
-MONTAGE_PATH = '/usr/local/bin/montage'
 OUTPUT_FILE = "./result.pdf"
 
 
@@ -62,10 +62,6 @@ def __run(*args):
         raise
 
 
-def montage(*params):
-    __run(MONTAGE_PATH, *params)
-
-
 def convert(*params):
     __run(CONVERT_PATH, *params)
 
@@ -101,11 +97,14 @@ def get_temp_fname():
 def build_page(crop_marks_file, page_cards):
     assert len(page_cards) == 9, "Page should contain 9 cards"
 
-    # TODO: replace `montage` by `convert`
-    PREFIX = ["-geometry", "+0+0", "-tile", "3x3"]
     fname = get_temp_fname()
-    params = PREFIX + list(page_cards) + [fname]
-    montage(*params)
+    convert(*[
+        "(", page_cards[0], page_cards[1], page_cards[2], "+append", ")",
+        "(", page_cards[3], page_cards[4], page_cards[5], "+append", ")",
+        "(", page_cards[6], page_cards[7], page_cards[8], "+append", ")",
+        "-append",
+        fname
+    ])
 
     A4_SIZE = "2480x3508"
     BORDERED_SIZE = "2274x3174-12-12"
